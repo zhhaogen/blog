@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>图解最小二乘法</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <script src="../js/echarts.common.min.js"></script>
+  <script src="../js/katex.min.js"></script>      
+  <script src="../js/numeric-1.2.6.min.js"></script>   
+  <link rel="stylesheet" href="../css/katex.min.css"> 
+</head>
+<body>
+<h1>图解最小二乘法</h1>
+<h3>一、定义:</h3> 
+<p>
+样本为<tex>(x_1,y_1),(x_2,y_2),...(x_n,y_n)</tex>,预测函数<tex>\hat{y}=f(x,\theta)</tex>,当误差平方和<tex displayMode>J_{LS}(\theta)=0.5\sum_{\mathclap{1\le i\le n}} (\hat{y}_i-y_i)^2</tex>为最小值时，<tex>\theta</tex>即为所求,记:<tex displayMode>\theta_{LS}=\underset{\theta}{\text{argmini}}J_{LS}(\theta)</tex>
+</p>
+<h3>二、一维线性模型</h3>
+<p>
+设一维线性模型:<tex>\hat{y}=f(x,\theta)=\theta_1x+\theta_2</tex>，那么<tex displayMode>J_{LS}(\theta)=0.5\sum_{\mathclap{1\le i\le n}} (\hat{y}_i-y_i)^2=0.5\sum_{\mathclap{1\le i\le n}}(\theta_1x_i+\theta_2-y_i)^2</tex>,对<tex>\theta_1 ,\theta_2</tex>求导:<tex displayMode>\sum_{\mathclap{1\le i\le n}}x_i(\theta_1x_i+\theta_2-y_i)=\theta_1\sum x_i^2+\theta_2\sum x_i - \sum x_i y_i=0</tex><tex displayMode>\sum_{\mathclap{1\le i\le n}}(\theta_1x_i+\theta_2-y_i)=\theta_1\sum x_i+n\theta_2-\sum y_i=0</tex>解得:<tex displayMode>\theta_1=\dfrac{n\sum x_iy_i-\sum x_i\sum y_i}{n\sum x_i^2-(\sum x_i)^2}</tex><tex displayMode>\theta_2=\dfrac{\sum y_i-\theta_1\sum x_i}{n}</tex>
+</p>
+<div><button onclick="showChart1()">演示</button></div>
+<div id="chart1" style="width: 600px;height:400px;"></div>
+<h3>三、一般线性模型</h3>
+<p>
+记基函数向量<tex>\phi(x)=(\phi_1(x),\phi_2(x),...,\phi_b(x))</tex>,参数向量:<tex>\theta=(\theta_1,\theta_2,...,\theta_b)</tex>.如<tex>\phi(x)=(1,x,...,x^{b-1})</tex>,那么一元多次方程:<tex displayMode>f(x)=\phi(x)\cdot\theta=\theta_1+\theta_2x+\theta_3x^2+...+\theta_bx^{b-1}</tex>.训练样本方差为:<tex displayMode>J_{LS}(\theta)=0.5\|\Phi\theta-y\|^2</tex>,其中设计矩阵:<tex displayMode>\Phi=\begin{pmatrix}\phi(x_1)\\\phi(x_2)\\..\\\phi(x_n)\end{pmatrix}=\begin{pmatrix} \phi_1(x_1) &..& \phi_b(x_1)\\&..&\\ \phi_1(x_n) &..& \phi_b(x_n)\end{pmatrix}</tex>,求得:<tex displayMode>\theta_{LS}=\Phi^\dag y</tex>,由于<tex>\Phi</tex>不一定为方阵,所以这里<tex>\Phi^\dag</tex>为广义逆矩阵,<tex>\Phi^\dag=(\Phi' \Phi)^{-1} \Phi'</tex>,注<tex>\Phi'</tex>为转置矩阵.
+</p>
+<div><button onclick="showChart12()">演示</button><br>
+上例子,实际模型:<tex>y=5*x+2</tex>,基函数:<tex>\phi(x)=(x,1)</tex><br>
+<div id="chart12" style="width: 800px;height:500px;"></div>
+</div> 
+<div><button onclick="showChart2()">演示</button><br>
+实际模型:<tex>y=5sin(x)+2x</tex>,基函数:<tex>\phi(x)=(1,x,sin(x),cos(x),sin(x/2),cos(x/2))</tex>
+</div>
+<div id="chart2" style="width: 800px;height:500px;"></div>
+</body>
+<script src="../js/common.js"></script>
+<script>
+//一维线性模型,公式计算
+function showChart1()
+{	
+	var fLabel="5*x+2";
+	//实际模型
+	var f=function(x)
+	{
+		return 5*x+2;
+	};
+	var min=-5;
+	var max=10;
+	var n=20;
+	
+	var x=linespace(min,max,n);
+	var y=[];//样本值 
+	for(var i=0;i<x.length;i++)
+	{
+		y[i]=f(x[i])+randomDeta(7); 
+	}  
+	console.log("样本",x,y);
+	
+	var series1=join(x,y); //样本数据
+	var series2=[[min,f(min)],[max,f(max)]]; //实际直线
+	
+	//计算预测模型
+	var a=n*sum(x,y)-sum(x)*sum(y);
+	var b=n*sum(x,x)-Math.pow(sum(x),2);
+	var theta1=a/b;
+	a=sum(y)-theta1*sum(x);
+	var theta2= a/n;
+	console.log(  "theta1",theta1,"theta2",theta2); 
+	var fA=function(x){
+		return theta1*x+theta2;
+	};
+	var fALabel="y="+theta1+"*x+"+theta2;
+	var series3=[[min,fA(min)],[max,fA(max)]]; 
+	
+	var chart = echarts.init(chart1);
+	var option = {
+		title: {
+			text: '一维线性模型',
+			subtext:fLabel
+		},
+		legend:{},
+		tooltip:{},
+		toolbox:{feature:{
+			dataView:{},
+			saveAsImage:{}
+		}},
+		xAxis:{
+			type:"value"
+		},
+		yAxis:{
+			type:"value"
+		},
+		series: [{
+			name:"样本",
+			data:series1,
+			type:"scatter" 
+		},
+		{
+			name:"实际模型",
+			data:series2,
+			type:"line", 
+		},
+		{
+			name:"预测模型",
+			data:series3,
+			type:"line"
+		}]
+	};
+	chart.setOption(option);
+} 
+//一维线性模型,矩阵计算
+function showChart12()
+{	
+	var fLabel="5*x+2";
+	//实际模型
+	var f=function(x)
+	{
+		return 5*x+2;
+	};
+	var min=-5;
+	var max=10;
+	var n=20;
+	
+	//生成样本值
+	var x=linespace(min,max,n);
+	var y=[];  
+	for(var i=0;i<x.length;i++)
+	{ 
+		y[i]=f(x[i])+randomDeta(1); 
+	}   
+	var series1=join(x,y); //样本数据 
+	console.log("样本" ); 
+	console.table(series1);
+	//预测基函数
+	var ft=[x=>x,x=>1];
+	
+	//设计矩阵
+	var Phi=[];
+	for(var i=0;i<x.length;i++)
+	{
+		var PhiItem=[];
+		var xi=x[i];
+		for(var j=0;j<ft.length;j++)
+		{
+			PhiItem[j]=ft[j](xi);
+		}		
+		Phi[i]=PhiItem; 
+	}
+	console.log("设计矩阵" ); 
+	console.table(Phi);
+	
+	var Phid=numeric.transpose(Phi);//转置 
+	var thetas=numeric.dot(Phid,Phi);  
+	thetas=numeric.inv(thetas); 
+	thetas=numeric.dot(thetas,Phid);   
+	thetas=numeric.dot(thetas,y); 
+	 console.log("参数结果" ,thetas );  
+	
+	//预测值
+	var ya=numeric.dot(Phi,thetas);
+	console.log("预测值",  ya );  
+	var series2=join(x,ya);
+	
+	var option = {
+		title: {
+			text: '一维线性模型',
+			subtext:fLabel
+		},
+		legend:{},
+		tooltip:{},
+		toolbox:{feature:{
+			dataView:{},
+			saveAsImage:{}
+		}},
+		xAxis:{
+			type:"value"
+		},
+		yAxis:{
+			type:"value"
+		},
+		series: [{
+			name:"样本",
+			data:series1,
+			type:"scatter" 
+			},
+			{
+			name:"预测",
+			data:series2,
+			type:"line" 
+		}]
+	};
+	echarts.init(chart12).setOption(option);
+}
+//最小二乘法,矩阵计算
+function showChart2()
+{	
+	var fLabel="5*sin(x)+2*x";
+	//实际模型
+	var f=function(x)
+	{
+		return 5*Math.sin(x)+2*x;
+	};
+	var min=-5;
+	var max=10;
+	var n=30;
+	
+	//生成样本值
+	var x=linespace(min,max,n);
+	var y=[];  
+	for(var i=0;i<x.length;i++)
+	{ 
+		y[i]=f(x[i])+randomDeta(2); 
+	}  
+	console.log("样本",x,y); 
+	var series1=join(x,y); //样本数据
+	
+	//生成真实数据,用于画线
+	var xl=linespace(min,max,200);
+	var yl=[];
+	for(var i=0;i<xl.length;i++)
+	{ 
+		yl[i]=f(xl[i]) ; 
+	}  
+	var series3=join(xl,yl); //真实数据
+	
+	//预测基函数
+	var ft=[x=>1,x=>x,x=>Math.sin(x),x=>Math.cos(x),x=>Math.sin(x/2),x=>Math.cos(x/2)]; 
+	
+	//设计矩阵
+	var Phi=[];
+	for(var i=0;i<x.length;i++)
+	{
+		var PhiItem=[];
+		var xi=x[i];
+		for(var j=0;j<ft.length;j++)
+		{
+			PhiItem[j]=ft[j](xi);
+		}		
+		Phi[i]=PhiItem; 
+	}
+	console.log("设计矩阵" ); 
+	console.table(Phi);
+	
+	var Phid=numeric.transpose(Phi);//转置 
+	var thetas=numeric.dot(Phid,Phi);  
+	thetas=numeric.inv(thetas); 
+	thetas=numeric.dot(thetas,Phid);   
+	thetas=numeric.dot(thetas,y); 
+	 console.log("参数结果" ,thetas );  
+	
+	//预测值
+	var ya=numeric.dot(Phi,thetas);
+	console.log("预测值",  ya );  
+	var series2=join(x,ya);
+	
+	var option = {
+		title: {
+			text: '最小二乘法求解',
+			subtext:fLabel
+		},
+		legend:{},
+		tooltip:{},
+		toolbox:{feature:{
+			dataView:{},
+			saveAsImage:{}
+		}},
+		xAxis:{
+			type:"value"
+		},
+		yAxis:{
+			type:"value"
+		},
+		series: [{
+			name:"样本",
+			data:series1,
+			type:"scatter" 
+			},
+			{
+			name:"真实",
+			data:series3,
+			type:"line" ,
+			itemStyle:{opacity:0},
+			tooltip:{trigger:'none'}
+			},
+			{
+			name:"预测",
+			data:series2,
+			type:"line" 
+		}]
+	};
+	echarts.init(chart2).setOption(option);
+}
+</script>
+</html>
